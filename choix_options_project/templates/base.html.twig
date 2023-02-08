@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}UPJV - Choix d'options{% endblock %}</title>
+    {% block stylesheets %}
+        {#<link rel="stylesheet" type="text/css" href="/css/base.css"/>#}
+        <!-- Favicons -->
+        <link href="{{ asset('img/favicon.png') }}" rel="icon">
+        <link href="{{ asset('img/apple-touch-icon.png') }}" rel="apple-touch-icon">
+
+        <!-- Google Fonts -->
+        <link href="https://fonts.gstatic.com" rel="preconnect">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Nunito:300,300i,400,400i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
+
+        <!-- Vendor CSS Files -->
+        <link href="{{ asset('vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+        <link href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.css') }}" rel="stylesheet">
+        <link href="{{ asset('vendor/boxicons/css/boxicons.min.css') }}" rel="stylesheet">
+        <link href="{{ asset('vendor/quill/quill.snow.css') }}" rel="stylesheet">
+        <link href="{{ asset('vendor/quill/quill.bubble.css') }}" rel="stylesheet">
+        <link href="{{ asset('vendor/remixicon/remixicon.css') }}" rel="stylesheet">
+        <link href="{{ asset('vendor/simple-datatables/style.css') }}" rel="stylesheet">
+
+        <!-- Template Main CSS File -->
+        <link href="{{ asset('css/style.css') }}" rel="stylesheet">
+
+        <!-- JQuery -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+
+        <link href="{{ asset('css/jquery.toast.min.css') }}" rel="stylesheet">
+
+    {% endblock %}
+</head>
+<body>
+    {% block body %}
+        {% block header %}
+                <!-- ======= Header ======= -->
+                <header id="header" class="header fixed-top d-flex align-items-center">
+
+                    <div class="d-flex align-items-center justify-content-between">
+                        <a href="index.html" class="logo d-flex align-items-center">
+                            <img src="{{ asset('img/logo.png') }}" alt="">
+                            <span class="d-none d-lg-block">UPJV</span>
+                        </a>
+                        {% if is_granted("ROLE_ADMIN") %}
+                            <i class="bi bi-list toggle-sidebar-btn"></i>
+                        {% endif %}
+
+                    </div><!-- End Logo -->
+
+                    <nav class="header-nav ms-auto">
+                        <ul class="d-flex align-items-center">
+
+                        <li class="nav-item dropdown pe-3">
+
+                            <a class="nav-link nav-profile d-flex align-items-center pe-0" href="#" data-bs-toggle="dropdown">
+                                <img src="{{ asset('img/profile-img1.jpg') }}" alt="Profile" class="rounded-circle">
+                                <span class="d-none d-md-block dropdown-toggle ps-2">{{ app.user.firstName|first|upper }} {{ app.user.lastName }}</span>
+                            </a><!-- End Profile Iamge Icon -->
+
+                            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow profile">
+                                <li class="dropdown-header">
+                                    <h6>{{ app.user.firstName }} {{ app.user.lastName }}</h6>
+                                    {% if is_granted("ROLE_ETUDIANT") %}
+                                        <span>Etudiant.e</span>
+                                    {% else %}
+                                        <span>Admin</span>
+                                    {% endif %}
+                                </li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center" href="{{ path('account_settings') }}">
+                                        <i class="bi bi-gear"></i>
+                                        <span>Paramètres du compte</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center" href="{{ path('app_logout') }}">
+                                        <i class="bi bi-box-arrow-right"></i>
+                                        <span>Se déconnecter</span>
+                                    </a>
+                                </li>
+
+                            </ul><!-- End Profile Dropdown Items -->
+                        </li><!-- End Profile Nav -->
+
+                    </ul>
+                </nav><!-- End Icons Navigation -->
+
+            </header><!-- End Header -->
+        {% endblock %}
+
+        {% block sidebar %}
+            <!-- ======= Sidebar ======= -->
+            <aside id="sidebar" class="sidebar">
+
+                <ul class="sidebar-nav" id="sidebar-nav">
+
+                    <li class="nav-item">
+                        <a class="nav-link collapsed" href="{{ path('app_responsible_index') }}">
+                            <i class="bi bi-bank"></i>
+                            <span>Responsables</span>
+                        </a>
+                    </li><!-- End responsables Nav -->
+
+                    <li class="nav-item">
+                        <a class="nav-link collapsed" href="{{ path('app_student_index', {'year': 1}) }}">
+                            <i class="bi bi-people-fill"></i>
+                            <span>Etudiants</span>
+                        </a>
+                    </li><!-- End Etudiants Nav -->
+                    <li class="nav-item">
+                        <a class="nav-link collapsed" href="{{ path('app_parcour_index') }}">
+                            <i class="bi bi-journal-bookmark-fill"></i>
+                            <span>Parcours</span>
+                        </a>
+                    </li><!-- End Parcours Nav -->
+
+                </ul>
+
+            </aside><!-- End Sidebar-->
+        {% endblock %}
+
+        <div id="content">
+            {% block content %}{% endblock %}
+        </div>
+
+        {% block script %}
+            <!-- Vendor JS Files -->
+            <script src="{{ asset('vendor/apexcharts/apexcharts.min.js') }}"></script>
+            <script src="{{ asset('vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+            <script src="{{ asset('vendor/chart.js/chart.min.js') }}"></script>
+            <script src="{{ asset('vendor/echarts/echarts.min.js') }}"></script>
+            <script src="{{ asset('vendor/quill/quill.min.js') }}"></script>
+            <script src="{{ asset('vendor/simple-datatables/simple-datatables.js') }}"></script>
+            <script src="{{ asset('vendor/tinymce/tinymce.min.js') }}"></script>
+            <script src="{{ asset('vendor/php-email-form/validate.js') }}"></script>
+
+            <!-- Template Main JS File -->
+            <script src="{{ asset('js/main.js') }}"></script>
+            <script src="{{ asset('js/jquery.toast.min.js') }}"></script>
+        {% endblock %}
+    {% endblock %}
+</body>
+</html>

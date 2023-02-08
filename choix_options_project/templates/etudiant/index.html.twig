@@ -1,0 +1,192 @@
+{% extends 'base.html.twig' %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link href="{{ asset('css/student-interface.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/float-button-style.css') }}" rel="stylesheet">
+{% endblock %}
+
+
+{% block body %}
+    {% block header %}
+        {{ parent() }}
+    {% endblock %}
+    <main id="main" class="main" style="position: relative; margin-left: auto">
+
+        {% if student.parcour != null %}
+            <div class="pagetitle">
+                <h1>Choix d'options</h1>
+                <h1>{{ student.year.name }} {{ student.parcour.name }}</h1>
+            </div>
+            <section class="section-content">
+
+                <div class="" style="width: 470px; margin: 16px auto;display: flex; justify-content: end;">
+                    <a class="btn btn-primary upjv-background-color" href="{{ path('etudiant_home') }}">
+                        Liste de suivi <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+                <div class="row">
+
+                    <form id="choice-form" action="{{ path('save_choice') }}" method="post">
+                        <div id="popup-error" style="display: none; width: 100%">
+                            <div class="alert alert-danger" role="alert">
+                                Choix d'options incomplet
+                            </div>
+                        </div>
+                        {% for error in errors %}
+                            <div id="popup-error" style="width: 100%">
+                                <div class="alert alert-danger" role="alert">
+                                    {{ error }}
+                                </div>
+                            </div>
+                        {% endfor %}
+                        {% for bloc in student.parcour.skillBlocs %}
+                            <div class="bloc-container">
+                                <div class="bloc bloc-head">
+                                    {{ bloc.name }}
+                                </div>
+                                <div class="bloc-content">
+                                    {% for ue in bloc.ues %}
+                                        <div class="bloc bloc-ue">
+                                            <i><span>{{ ue.name }}</span></i>
+                                            <i><span style="color: lightslategrey; font-size: 12px;">UE Obligatoire</span></i>
+                                        </div>
+                                    {% endfor %}
+                                    {% for optionBloc in bloc.optionBlocs %}
+                                        <div class="sub-bloc">
+                                            <div class="bloc sub-bloc-header">
+                                                <i><span>{{ optionBloc.name }}</span></i>
+                                                <div>
+                                                        {% if optionBloc.nbUeToChose - (validatedUesByOptionBloc[optionBloc.id]|length) > 0 %}
+                                                            <span class="choice-made">{{ optionBloc.nbUeToChose - (validatedUesByOptionBloc[optionBloc.id]|length)}}</span>/<span class="choice-max">{{ optionBloc.ues|length }}</span>
+                                                        {% else %}
+                                                           <i><span>Bloc d'options validé</span></i>
+                                                        {% endif %}
+                                                </div>
+                                            </div>
+
+                                            <div class="sub-bloc-content">
+                                                {% for ue in optionBloc.ues %}
+                                                    {% if ue in student.validatedUes %}
+                                                        <div class="bloc bloc-ue">
+                                                            <i><span>{{ ue.name }}</span></i>
+                                                            <i><span style="color: lightslategrey; font-size: 12px;">UE Validée</span></i>
+                                                        </div>
+                                                    {% elseif optionBloc.nbUeToChose - (validatedUesByOptionBloc[optionBloc.id]|length) > 0 %}
+                                                        <div class="bloc bloc-ue">
+                                                            <i><span>{{ ue.name }}</span></i>
+                                                            <i class="nb-Choice"><span>{{ ue.choices|length }}/<span>{{ ue.nbGroup * ue.capacityGroup }}</span></span></span></i>
+                                                            <div>
+                                                                {% if "now"|date('U') >= optionBloc.periodChoice.debut|date('U') and "now"|date('U') <= optionBloc.periodChoice.fin|date('U')%}
+                                                                    <select name="optionBloc-{{ optionBloc.id }}-ue-{{ ue.id }}-priority" class="form-control">
+                                                                        <option value="" {% if currentChoice %} selected {% endif %}>Ordre de prioritè</option>
+                                                                        {% for p in 0..(optionBloc.ues|length -1 - (validatedUesByOptionBloc[optionBloc.id]|length)) %}
+                                                                            <option value="{{ p + 1 }}" {% if currentChoice["student-" ~ student.id ~ "-ue-" ~ ue.id] is defined and currentChoice["student-" ~ student.id ~ "-ue-" ~ ue.id] == (p+1+(validatedUesByOptionBloc[optionBloc.id]|length)) %} selected="selected" {% endif %}>{{ p + 1 }}</option>
+                                                                        {% endfor %}
+                                                                    </select>
+                                                                {% elseif  "now"|date('U') < optionBloc.periodChoice.debut|date('U')%}
+                                                                    <i style="font-size: 12px"><span>Jusqu'au {{ optionBloc.periodChoice.debut|date('m-d-Y H:i') }}</span></i>
+                                                                {% elseif "now"|date('U') > optionBloc.periodChoice.fin|date('U') %}
+                                                                    <i style="color: red; font-size: 12px"><span>Date {{ optionBloc.periodChoice.fin|date('m-d-Y H:i') }} dépassé</span></i>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                    {% else %}
+                                                        <div class="bloc bloc-ue">
+                                                            <span><i>{{ ue.name }}</i></span>
+                                                            <span style="color: lightslategrey; font-size: 12px;"><i>UE non choisi</i></span>
+                                                        </div>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+
+                        <button class="btn btn-primary btn-save-choice" id="btn-choice" type="submit">Enregistrer</button>
+                    </form>
+                </div>
+            </section>
+        {% else %}
+            <div class="pagetitle">
+                <h1>Choix d'options</h1>
+            </div>
+            <div class="alert alert-primary" style="width: 600px; text-align: center; margin: 0 auto;"> Vous n'êtes toujours pas enregistrer dans un parcour, Demandez de l'aide auprès de votre responsable du master</div>
+        {% endif %}
+    </main>
+    {% block script %}
+        {{ parent() }}
+        <script>
+            var errorTostProps = {
+                heading:'Votre choix est incomplet',
+                text :"Veilliez completer votre choix ",
+                loader: false,
+                bgColor:'#f14f4f',
+                position:'bottom-right',
+            };
+            var successTostProps = {
+                heading:'Choix enregistrer',
+                text :"Votre Choix est bien enregistré avec Succès",
+                loader: false,
+                bgColor:'#3fa55c',
+                position:'bottom-right',
+            };
+            $("#choice-form").submit(function (e) {
+                e.preventDefault();
+                var form = $(this);
+                var action = form.attr('action');
+                var errorEmptyInput = false;
+                var errorDublicateValueInOptionBloc = false;
+                $('#choice-form select').map(function()
+                {
+                    if( !$(this).val() ) {
+                        errorEmptyInput = true;
+                    }
+                });
+                $('.sub-bloc-content').map(function()
+                {
+
+                    var selectsValues = [];
+                    if(errorDublicateValueInOptionBloc){
+                        return;
+                    }
+                    $(this).find('select').map(function(){
+
+                        console.log($(this));
+                       if(!selectsValues.includes($(this).val())){
+                           selectsValues.push($(this).val());
+                           console.log($(this).val());
+                       } else {
+                           errorDublicateValueInOptionBloc = true;
+                       }
+                    });
+
+                });
+                if(errorEmptyInput){
+                    $.toast(errorTostProps);
+                    return;
+                }
+                if(errorDublicateValueInOptionBloc){
+                    //Show error message
+                    console.log('empty select detected');
+                    errorTostProps['heading'] = 'Données erronées';
+                    errorTostProps['text'] = 'L\'ordre de priorité doit être unique dans chaque bloc d\'options';
+                    $.toast(errorTostProps);
+                    return;
+                }
+                $.ajax({
+                    type: "POST",
+                    url: action,
+                    data: form.serialize(), // serializes the form's elements.
+                    success: function(data)
+                    {
+                        console.log(data['message']);
+                        $.toast(successTostProps);
+                    }
+                });
+            });
+        </script>
+    {% endblock %}
+{% endblock %}

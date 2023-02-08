@@ -1,0 +1,9 @@
+twig:
+    default_path: '%kernel.project_dir%/templates'
+    paths:
+        # point this wherever your images live
+        'public/img': images
+
+when@test:
+    twig:
+        strict_variables: true

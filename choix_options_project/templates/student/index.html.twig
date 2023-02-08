@@ -1,0 +1,400 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}User index{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link href="{{ asset('css/float-button-style.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/select-element-style.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block body %}
+    {% block header %}
+        {{ parent() }}
+    {% endblock %}
+
+    {% block sidebar %}
+        {{ parent() }}
+    {% endblock%}
+    <main id="main" class="main" style="position: relative; margin-left: auto">
+        <div class="pagetitle">
+            <h1>Gestion des étudiants</h1>
+            <form style="text-align: center;">
+                <select id="promotion-selected" class="text-select">
+                    {% for year in years %}
+                        <option value="{{ year.id }}" {% if year.id == selectedYear.id %} selected {% endif %}>
+                            {{ year.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+        <section class="section-content">
+            <div class="row">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th style="border: none; font-size: 1.2em">
+                                <div class="card-button dropdown" style="flex: 1; text-align: center">
+                                    <a href="" class="link-text" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-gear-fill"></i>
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" id="set-year-group" href="#" data-bs-toggle="modal" data-bs-target="#set-students-years" >Modifier l'année du Master</a></li>
+                                        <li><a class="dropdown-item" id="set-parcours-group" href="#" data-bs-toggle="modal" data-bs-target="#set-students-parcours" >Modifier le parcours</a></li>
+                                        <li>
+                                            <a class="dropdown-item" id="delete-set-of-student" href="#">
+                                                Supprimer les étudiants sélectionées
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </th>
+                            <th>
+                                <input type="checkbox" id="checkbox-parent" class="form-check"/>
+                            </th>
+                            <th>Nom</th>
+                            <th>Prénom</th>
+                            <th>Email</th>
+                            <th>Parcours</th>
+                            <th style="text-align: center">
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#AddStudentModal" style="background-color: #00345f;">
+                                    <i class="bi bi-plus-square"></i> Ajouter Etudiant
+                                </button>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for student in students %}
+                        <tr  id="student-{{ student.user.id }}">
+                            <td style="border: none;"></td>
+                            <td><input type="checkbox" value="{{ student.id }}" name="student" class="checkbox-children child-{{ student.id }}"></td>
+                            <td>{{ student.user.lastName }}</td>
+                            <td>{{ student.user.firstName }}</td>
+                            <td>{{ student.user.email }}</td>
+                            <td>
+                                <form action="{{ path('update_student_parcours', {'year': selectedYear.id, 'student': student.id}) }}" method="post">
+                                    <select name="student-parcours" class="student-parcours form-control">
+                                        <option value="" {% if student.parcour is null %} selected {% endif %}>Aucun</option>
+                                        {% for parcour in parcours %}
+                                            <option value="{{ parcour.id }}" {% if student.parcour is not null and parcour.id == student.parcour.id %} selected="selected" {% endif %}>{{ parcour.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </form>
+                            </td>
+                            <td style="display: flex; align-items: center; justify-content: center">
+                                <a href="#" class="link-text edit-student edit-student-{{ student.user.id }}" data-bs-toggle="modal" data-bs-target="#edit-student-modal">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>
+                                <form method="post" action="{{ path('app_student_delete', {'year': selectedYear.id, 'student': student.id}) }}" onsubmit="return confirm('Etes vous sur de vouloir supprimer le user ?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ student.user.id) }}">
+                                    <button class="link-text btn" style="color: #dc2323"><i class="bi bi-trash3-fill"></i></button>
+                                </form>
+                                <a href="{{ path('add_validated_ues',{ 'year': student.year.id, 'student': student.id}) }}">Ues Validées</a>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="7">Ajouter un étudiant</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="col-12" style="display: none;">
+                <form action="{{ path('app_student_delete_multi_user',{'year': selectedYear.id}) }}" method="post" name="group-student-to-delete" id="group-student-to-delete">
+                    {% for student in students %}
+                        <input type="checkbox" value="{{ student.id }}" name="student-delete[]" class="checkbox-children-hidden child-{{ student.id }}-hidden">
+                    {% endfor %}
+                </form>
+            </div>
+        </section>
+        <form action="{{ path('app_student_send', { 'year': selectedYear.id }) }}" method="post"  id="send-email-form">
+            <button class="btn btn-primary float-button" style="left: calc(50% + 210px); min-width: fit-content;">Envoyer <i class="bi bi-send" style="margin-left: 5px;"></i></button>
+        </form>
+        <button class="btn btn-primary float-button" data-bs-toggle="modal" data-bs-target="#importFromCsv" >Importer les étudiants d'un fichier Excel</button>
+        <div class="modal fade" id="importFromCsv" tabindex="-1" aria-labelledby="importFromCsv" aria-hidden="true">
+            <div class="modal-dialog">
+
+                {{ form_start(formUpload, {'action': path('app_student_upload', { 'year': selectedYear.id }), 'method': 'POST', 'attr': {'id': 'form-upload'}}) }}
+
+                <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5" id="exampleModalLabel"> <i class="bi bi-file-plus"></i>Importer</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body row">
+                            <div class="my-custom-class-for-errors">
+                                {{ form_errors(formUpload) }}
+                            </div>
+                            <div class="col-12">
+                                {{ form_label(formUpload.submitFile,'Fichier Excel à importer',  {'label_attr': {'class': 'col-form-label'}}) }}
+                                {{ form_widget(formUpload.submitFile, {'attr': {'class': 'form-control'}}) }}
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                            <button class="btn btn-primary">{{ button_label|default('Ajouter') }}</button>
+                        </div>
+                    </div>
+                {{ form_end(formUpload) }}
+            </div>
+        </div>
+        <!-- Modal Add -->
+        <div class="modal fade" id="AddStudentModal" tabindex="-1" aria-labelledby="AddStudentModal" aria-hidden="true">
+            <div class="modal-dialog">
+
+                {{ form_start(form) }}
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="exampleModalLabel"> <i class="bi bi-file-plus"></i> Ajouter étudiant</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body row">
+                        <div class="my-custom-class-for-errors">
+                            {{ form_errors(form) }}
+                        </div>
+                        <div class="col-12">
+                            {{ form_label(form.lastName,'Nom',  {'label_attr': {'class': 'col-form-label'}}) }}
+                            {{ form_widget(form.lastName, {'attr': {'class': 'form-control'}}) }}
+                        </div>
+                        <div class="col-12">
+                            {{ form_label(form.firstName,'Prénom',  {'label_attr': {'class': 'col-form-label'}}) }}
+                            {{ form_widget(form.firstName, {'attr': {'class': 'form-control'}}) }}
+                        </div>
+                        <div class="col-12">
+                            {{ form_label(form.email,'Email',  {'label_attr': {'class': 'col-form-label'}}) }}
+                            {{ form_widget(form.email, {'attr': {'class': 'form-control'}}) }}
+                        </div>
+                        <div class="col-12">
+                            <label for="student-parcours" class="col-form-label">Parcours</label>
+                            <select name="student-parcours" id="student-parcours" class="student-parcours form-control">
+                                <option value="" selected >Aucun</option>
+                                {% for parcour in parcours %}
+                                    <option value="{{ parcour.id }}">{{ parcour.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button class="btn btn-primary">{{ button_label|default('Ajouter') }}</button>
+                    </div>
+                </div>
+                {{ form_end(form) }}
+            </div>
+        </div>
+        <!-- End Modal Add -->
+        <!-- Modal Edit -->
+        <div class="modal fade" id="edit-student-modal" tabindex="-1" aria-labelledby="edit-student-modal" aria-hidden="true">
+            <div class="modal-dialog">
+
+                {{ form_start(formEdit, {'action': path('app_student_edit', { 'year': selectedYear.id, 'user': 0 }), 'method': 'POST', 'attr': {'id': 'form-edit'}}) }}
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="exampleModalLabel"> <i class="bi bi-pen"></i> Modifier un étudiant</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body row">
+
+                        <div class="my-custom-class-for-errors">
+                            {{ form_errors(formEdit) }}
+                        </div>
+                        <div class="col-12">
+                            {{ form_label(formEdit.lastName,'Nom',  {'label_attr': {'class': 'col-form-label'}}) }}
+                            {{ form_widget(formEdit.lastName, {'attr': {'class': 'form-control'}}) }}
+                        </div>
+                        <div class="col-12">
+                            {{ form_label(formEdit.firstName,'Prénom',  {'label_attr': {'class': 'col-form-label'}}) }}
+                            {{ form_widget(formEdit.firstName, {'attr': {'class': 'form-control'}}) }}
+                        </div>
+                        <div class="col-12">
+                            {{ form_label(formEdit.email,'Email',  {'label_attr': {'class': 'col-form-label'}}) }}
+                            {{ form_widget(formEdit.email, {'attr': {'class': 'form-control'}}) }}
+                        </div>
+                        <div class="col-12" id="change-promotion">
+                            <label class="col-form-label required" for="change-promotion-select">Année</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button class="btn btn-primary">{{ button_label|default('Modifier') }}</button>
+                    </div>
+                </div>
+                {{ form_end(formEdit) }}
+            </div>
+        </div>
+        <!-- End Modal Edit -->
+
+        <!-- Modal Set Parcour -->
+        <div class="modal fade" id="set-students-parcours" tabindex="-1" aria-labelledby="set-students-parcours" aria-hidden="true">
+            <div class="modal-dialog">
+                <form action="{{ path('set_year_parcours_group', {'year': selectedYear.id}) }}" method="post" id="form-set-parcours" name="set-parcours-group-student">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5" id="exampleModalLabel"> <i class="bi bi-pen"></i> Modifier le parcours des étudiants sélectionnés</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body row">
+                            <div class="col-12" style="display: none;">
+                                {% for student in students %}
+                                    <input type="checkbox" value="{{ student.id }}" name="student-parcour[]" class="checkbox-children-hidden child-{{ student.id }}-hidden">
+                                {% endfor %}
+                            </div>
+                            <div class="col-12">
+                                <label for="selected-parcours-in-form">Parcour</label>
+                                <select name="select-student-parcours" class="select-student-parcours form-control" id="selected-parcours-in-form">
+                                    <option value="" selected="selected">Aucun</option>
+                                    {% for parcour in parcours %}
+                                        <option value="{{ parcour.id }}">{{ parcour.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                            <button class="btn btn-primary">{{ button_label|default('Modifier') }}</button>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+        <!-- End Modal Set Parcour -->
+        <!-- Modal Set Year -->
+        <div class="modal fade" id="set-students-years" tabindex="-1" aria-labelledby="set-students-years" aria-hidden="true">
+            <div class="modal-dialog">
+                <form action="{{ path('set_year_parcours_group', {'year': selectedYear.id}) }}" method="post" id="form-set-parcours" name="set-parcours-group-student">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5" id="exampleModalLabel"> <i class="bi bi-pen"></i> Modifier l'année des étudiants sélectionnés</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body row">
+                            <div class="col-12" style="display: none;">
+                                {% for student in students %}
+                                    <input type="checkbox" value="{{ student.id }}" name="student-year[]" class="checkbox-children-hidden child-{{ student.id }}-hidden">
+                                {% endfor %}
+                            </div>
+                            <div class="col-12">
+                                <label for="select-student-year">Année</label>
+                                <select id="select-student-year" name="select-student-year" class="form-control">
+                                    {% for year in years %}
+                                        <option value="{{ year.id }}">
+                                            {{ year.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                            <button class="btn btn-primary">{{ button_label|default('Modifier') }}</button>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+        <!-- End Modal Set Parcour -->
+
+    </main>
+    {% block script %}
+        {{ parent() }}
+        <script>
+            $('.student-parcours').change(function () {
+                var form = $(this).parent();
+                var action = form.attr('action');
+                $.ajax({
+                    type: "POST",
+                    url: action,
+                    data: form.serialize(), // serializes the form's elements.
+                    success: function(data)
+                    {
+                        console.log(data['message']);
+                    }
+                });
+            })
+            const promotionSelected = document.getElementById('promotion-selected');
+            var clonePromotionSelect = promotionSelected.cloneNode(true);
+            clonePromotionSelect.id = 'change-promotion-select';
+            clonePromotionSelect.name = 'change-promotion-select';
+            clonePromotionSelect.classList.remove('text-select');
+            clonePromotionSelect.classList.add('form-control');
+            document.getElementById('change-promotion').appendChild(clonePromotionSelect);
+            promotionSelected.addEventListener('change', event => {
+                let currentUrl = window.location.href.split('/');
+                if(currentUrl[currentUrl.length - 2] == 'student'){
+                    currentUrl.pop();
+                }
+                currentUrl[currentUrl.length - 2] = event.currentTarget.value;
+                location.href = currentUrl.join('/');
+            });
+            const students = Object.values(document.getElementsByClassName('edit-student'));
+            students.forEach(link => {
+                link.addEventListener('click', event => {
+                    event.preventDefault();
+                    const id = event.currentTarget.className.split(' ').pop().split('-').pop();
+                    const studentRow = document.getElementById('student-' + id);
+                    const studentLastName = studentRow.children[2].textContent;
+                    const studentFirstName = studentRow.children[3].textContent;
+                    const studentEmail = studentRow.children[4].textContent;
+                    const form = document.getElementById('form-edit');
+                    //Form Values
+
+                    form.getElementsByTagName('input')[0].value = studentLastName;
+                    form.getElementsByTagName('input')[1].value = studentFirstName;
+                    form.getElementsByTagName('input')[2].value = studentEmail;
+                    let formAction = form.action.split('/');
+                    formAction[formAction.length - 2] = id;
+                    form.action = formAction.join('/');
+                });
+            });
+            //Checkbox
+            $('#checkbox-parent').click(function () {
+                    checkboxParent = this.checked;
+                    $('.checkbox-children').each(function() {
+                        this.checked = checkboxParent;
+                    });
+                $('.checkbox-children-hidden').each(function() {
+                    this.checked = checkboxParent;
+                });
+            });
+            $('.checkbox-children').click(function () {
+                classId = '.' + $(this).attr('class').split(' ')[1] + '-hidden';
+                $(classId).prop('checked', this.checked);
+                if(!this.checked){
+                    $('#checkbox-parent').prop('checked', false);
+                }
+            });
+            $('#delete-set-of-student').click(function (e) {
+                e.preventDefault();
+                $('#group-student-to-delete').submit();
+            });
+            //Send emails
+            var successTostProps = {
+                heading:'Emails envoyés',
+                text :"les emails sont envoyés aux étudiants",
+                loader: false,
+                bgColor:'#3fa55c',
+                position:'bottom-right',
+            };
+            $('#send-email-form').submit(function(e){
+                e.preventDefault();
+                var action = $(this).attr('action');
+                $.ajax({
+                    type: "POST",
+                    url: action,
+                    success: function(data)
+                    {
+                        $.toast(successTostProps);
+                        console.log(data['message']);
+                    }
+                });
+            });
+        </script>
+    {% endblock %}
+{% endblock %}
